@@ -8,13 +8,15 @@ public class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
+    public DbSet<Tag> Tags => Set<Tag>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<TaskItem>(e =>
-        {
-            e.Property(x => x.Title).HasMaxLength(200).IsRequired();
-            e.Property(x => x.CreatedAtUtc).IsRequired();
-        });
+        // Many-to-many join table will be auto-created by EF Core
+        modelBuilder.Entity<TaskItem>()
+            .HasMany(t => t.Tags)
+            .WithMany(t => t.Tasks);
+
+        base.OnModelCreating(modelBuilder);
     }
 }
