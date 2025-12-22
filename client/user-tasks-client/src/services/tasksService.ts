@@ -18,7 +18,7 @@ export type TaskItem = {
   }
   
   export async function createTask(title: string): Promise<TaskItem> {
-    const res = await fetch('/api/tasks', {
+    const res = await fetch(baseUrl + '/api/tasks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title }),

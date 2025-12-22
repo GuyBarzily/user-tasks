@@ -37,7 +37,7 @@ function App() {
       {error && <div style={{ color: 'crimson', marginBottom: 12 }}>{error}</div>}
 
       <div style={{ marginBottom: 12 }}>
-        <strong>Health:</strong> {health ? JSON.stringify(health) : 'Loading...'}
+        <strong>Tasks:</strong> {health ? JSON.stringify(health) : 'Loading...'}
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>

@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using UserTasks.Api.Data;
+using UserTasks.Api.Models;
 
 namespace UserTasks.Api.Controllers;
-
-public record TaskItem(int Id, string Title, bool IsDone);
 
 public record CreateTaskRequest(string Title);
 public record UpdateTaskRequest(string Title, bool IsDone);
@@ -11,56 +12,65 @@ public record UpdateTaskRequest(string Title, bool IsDone);
 [Route("api/[controller]")]
 public class TasksController : ControllerBase
 {
-    // In-memory store (resets when server restarts)
-    private static readonly List<TaskItem> _tasks = new()
-    {
-        new TaskItem(1, "First task", false),
-        new TaskItem(2, "Second task", true),
-    };
+    private readonly AppDbContext _db;
 
-    private static int _nextId = 3;
+    public TasksController(AppDbContext db)
+    {
+        _db = db;
+    }
 
     [HttpGet]
-    public ActionResult<List<TaskItem>> GetAll() => Ok(_tasks);
+    public async Task<ActionResult<List<TaskItem>>> GetAll()
+    {
+        return Ok(await _db.Tasks.OrderBy(t => t.Id).ToListAsync());
+    }
 
     [HttpGet("{id:int}")]
-    public ActionResult<TaskItem> GetById(int id)
+    public async Task<ActionResult<TaskItem>> GetById(int id)
     {
-        var task = _tasks.FirstOrDefault(t => t.Id == id);
+        var task = await _db.Tasks.FindAsync(id);
         return task is null ? NotFound() : Ok(task);
     }
 
     [HttpPost]
-    public ActionResult<TaskItem> Create([FromBody] CreateTaskRequest req)
+    public async Task<ActionResult<TaskItem>> Create(CreateTaskRequest req)
     {
         if (string.IsNullOrWhiteSpace(req.Title))
             return BadRequest(new { error = "Title is required" });
 
-        var task = new TaskItem(_nextId++, req.Title.Trim(), false);
-        _tasks.Add(task);
+        var task = new TaskItem
+        {
+            Title = req.Title.Trim(),
+            IsDone = false
+        };
+
+        _db.Tasks.Add(task);
+        await _db.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetById), new { id = task.Id }, task);
     }
 
     [HttpPut("{id:int}")]
-    public ActionResult<TaskItem> Update(int id, [FromBody] UpdateTaskRequest req)
+    public async Task<ActionResult<TaskItem>> Update(int id, UpdateTaskRequest req)
     {
-        var index = _tasks.FindIndex(t => t.Id == id);
-        if (index == -1) return NotFound();
+        var task = await _db.Tasks.FindAsync(id);
+        if (task is null) return NotFound();
 
-        if (string.IsNullOrWhiteSpace(req.Title))
-            return BadRequest(new { error = "Title is required" });
+        task.Title = req.Title.Trim();
+        task.IsDone = req.IsDone;
 
-        var updated = new TaskItem(id, req.Title.Trim(), req.IsDone);
-        _tasks[index] = updated;
-
-        return Ok(updated);
+        await _db.SaveChangesAsync();
+        return Ok(task);
     }
 
     [HttpDelete("{id:int}")]
-    public IActionResult Delete(int id)
+    public async Task<IActionResult> Delete(int id)
     {
-        var removed = _tasks.RemoveAll(t => t.Id == id);
-        return removed == 0 ? NotFound() : NoContent();
+        var task = await _db.Tasks.FindAsync(id);
+        if (task is null) return NotFound();
+
+        _db.Tasks.Remove(task);
+        await _db.SaveChangesAsync();
+        return NoContent();
     }
 }
