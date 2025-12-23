@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react';
-import { Button, Col, Form, Row, InputGroup, Badge } from 'react-bootstrap';
-import type { CreateTaskPayload, TaskPriority } from '../types';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Button, Col, Form, Row, InputGroup, Badge, ListGroup, Spinner } from 'react-bootstrap';
+import type { CreateTaskPayload, TaskPriority } from "../types";
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
+import { searchTags, type TagSuggestion } from "../tagsApi";
 
 type Props = {
     onSubmit: (payload: CreateTaskPayload) => void;
@@ -26,8 +28,15 @@ export default function TaskForm({ onSubmit, isSubmitting = false }: Props) {
     const [userEmail, setUserEmail] = useState('');
 
     // tags
-    const [tagInput, setTagInput] = useState('');
-    const [tags, setTags] = useState<string[]>([]);
+    const [tagInput, setTagInput] = useState("");
+    const [selectedTags, setSelectedTags] = useState<TagSuggestion[]>([]);
+    const [tagSuggestions, setTagSuggestions] = useState<TagSuggestion[]>([]);
+    const [tagsLoading, setTagsLoading] = useState(false);
+    const [tagsOpen, setTagsOpen] = useState(false);
+
+    const tagBoxRef = useRef<HTMLDivElement>(null);
+
+    const debouncedTagQuery = useDebouncedValue(tagInput, 250);
 
     const titleError = useMemo(() => {
         if (!title.trim()) return 'Title is required';
@@ -37,35 +46,71 @@ export default function TaskForm({ onSubmit, isSubmitting = false }: Props) {
 
     const emailError = useMemo(() => {
         if (!userEmail.trim()) return '';
-        // light validation (don’t overdo)
         const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail.trim());
         return ok ? '' : 'Email looks invalid';
     }, [userEmail]);
 
     const canSubmit = !titleError && !emailError && !isSubmitting;
 
-    const addTag = () => {
-        const t = tagInput.trim();
-        if (!t) return;
+    const selectTag = (tag: TagSuggestion) => {
+        const exists = selectedTags.some(t => t.id === tag.id);
+        if (exists) return;
 
-        // avoid duplicates (case-insensitive)
-        const exists = tags.some(x => x.toLowerCase() === t.toLowerCase());
-        if (exists) {
-            setTagInput('');
-            return;
+        setSelectedTags(prev => [...prev, tag]);
+        setTagInput("");
+        setTagSuggestions([]);
+        setTagsOpen(false);
+    };
+
+    const removeTag = (id: number) => {
+        setSelectedTags(prev => prev.filter(t => t.id !== id));
+    };
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function run() {
+            const q = debouncedTagQuery.trim();
+            if (!q) {
+                setTagSuggestions([]);
+                setTagsLoading(false);
+                return;
+            }
+
+            setTagsLoading(true);
+            try {
+                const res = await searchTags(q);
+                if (cancelled) return;
+
+                // filter out already-selected tags by id
+                const selectedIds = new Set(selectedTags.map(t => t.id));
+                const filtered = res.filter(s => !selectedIds.has(s.id));
+
+                setTagSuggestions(filtered);
+                setTagsOpen(true);
+            } finally {
+                if (!cancelled) setTagsLoading(false);
+            }
         }
 
-        setTags(prev => [...prev, t]);
-        setTagInput('');
-    };
+        run();
+        return () => {
+            cancelled = true;
+        };
+    }, [debouncedTagQuery, selectedTags]);
 
-    const removeTag = (t: string) => {
-        setTags(prev => prev.filter(x => x !== t));
-    };
+    // ✅ Close suggestions on outside click
+    useEffect(() => {
+        function onDocClick(e: MouseEvent) {
+            if (!tagBoxRef.current) return;
+            if (!tagBoxRef.current.contains(e.target as Node)) setTagsOpen(false);
+        }
+        document.addEventListener('mousedown', onDocClick);
+        return () => document.removeEventListener('mousedown', onDocClick);
+    }, []);
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-
         if (!canSubmit) return;
 
         const payload: CreateTaskPayload = {
@@ -76,23 +121,24 @@ export default function TaskForm({ onSubmit, isSubmitting = false }: Props) {
             userFullName: userFullName.trim(),
             userTelephone: userTelephone.trim(),
             userEmail: userEmail.trim(),
-            tags,
+            tags: selectedTags.map(t => t.id), // ✅ send IDs
         };
 
         onSubmit(payload);
 
-        // reset (keep user details optionally; for now reset all)
-        setTitle('');
-        setDescription('');
-        setDueLocal('');
+        // reset
+        setTitle("");
+        setDescription("");
+        setDueLocal("");
         setPriority(1);
-        setUserFullName('');
-        setUserTelephone('');
-        setUserEmail('');
-        setTags([]);
-        setTagInput('');
+        setUserFullName("");
+        setUserTelephone("");
+        setUserEmail("");
+        setSelectedTags([]);
+        setTagInput("");
+        setTagSuggestions([]);
+        setTagsOpen(false);
     };
-
     return (
         <Form onSubmit={submit}>
             <Row className="g-3">
@@ -167,47 +213,81 @@ export default function TaskForm({ onSubmit, isSubmitting = false }: Props) {
                     </Form.Group>
                 </Col>
 
-                {/* Tags section */}
+                {/* ✅ Tags section with debounced AJAX + suggestions */}
                 <Col md={6}>
                     <Form.Group>
                         <Form.Label>Tags</Form.Label>
-                        <InputGroup>
-                            <Form.Control
-                                value={tagInput}
-                                onChange={(e) => setTagInput(e.target.value)}
-                                placeholder="Type tag and press Add"
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        addTag();
-                                    }
-                                }}
-                            />
-                            <Button
-                                variant="outline-secondary"
-                                type="button"
-                                onClick={addTag}
-                                disabled={!tagInput.trim()}
-                            >
-                                Add
-                            </Button>
-                        </InputGroup>
 
-                        {tags.length > 0 && (
+                        <div ref={tagBoxRef} style={{ position: 'relative' }}>
+                            <InputGroup>
+                                <Form.Control
+                                    value={tagInput}
+                                    onChange={(e) => setTagInput(e.target.value)}
+                                    placeholder="Type to search tags…"
+                                    onFocus={() => {
+                                        if (tagSuggestions.length > 0) setTagsOpen(true);
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault(); // do nothing
+                                        }
+                                        if (e.key === 'Escape') {
+                                            setTagsOpen(false);
+                                        }
+                                    }}
+
+                                />
+                            </InputGroup>
+
+                            {tagsLoading && (
+                                <div className="small text-muted mt-1">
+                                    <Spinner animation="border" size="sm" className="me-2" />
+                                    Searching…
+                                </div>
+                            )}
+
+                            {tagsOpen && tagSuggestions.length > 0 && (
+                                <ListGroup
+                                    className="shadow"
+                                    style={{
+                                        position: 'absolute',
+                                        width: '100%',
+                                        zIndex: 10,
+                                        marginTop: 6,
+                                        maxHeight: 220,
+                                        overflowY: 'auto',
+                                    }}
+                                >
+                                    {tagSuggestions.map((s) => (
+                                        <ListGroup.Item
+                                            action
+                                            key={s.id}
+                                            onClick={() => selectTag(s)} // ✅ pass object
+                                        >
+                                            {s.name}
+                                        </ListGroup.Item>
+                                    ))}
+
+                                </ListGroup>
+                            )}
+                        </div>
+
+                        {selectedTags.length > 0 && (
                             <div className="mt-2 d-flex flex-wrap gap-2">
-                                {tags.map((t) => (
+                                {selectedTags.map((t) => (
                                     <Badge
                                         bg="secondary"
-                                        key={t}
-                                        style={{ cursor: 'pointer' }}
+                                        key={t.id}
+                                        style={{ cursor: "pointer" }}
                                         title="Click to remove"
-                                        onClick={() => removeTag(t)}
+                                        onClick={() => removeTag(t.id)} // ✅ remove by id
                                     >
-                                        {t} ✕
+                                        {t.name} ✕
                                     </Badge>
                                 ))}
                             </div>
                         )}
+
                     </Form.Group>
                 </Col>
 

@@ -11,9 +11,14 @@ export type Task = {
   userTelephone: string;
   userEmail: string;
 
-  tags: string[];
+  tags: Tag[];
 
   createdAtUtc: string;
+};
+
+export type Tag = {
+  id: number;
+  name: string;
 };
 
 export type CreateTaskPayload = {
@@ -26,5 +31,5 @@ export type CreateTaskPayload = {
   userTelephone: string;
   userEmail: string;
 
-  tags: string[];
+  tags: number[];
 };
