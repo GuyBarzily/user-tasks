@@ -11,7 +11,8 @@ public record TaskDto(
     string UserFullName,
     string UserTelephone,
     string UserEmail,
-    List<string> Tags,
+    List<int> TagIds,
+    List<string> TagNames,
     DateTime CreatedAtUtc
 );
 
@@ -23,7 +24,7 @@ public record CreateTaskRequest(
     string UserFullName,
     string UserTelephone,
     string UserEmail,
-    List<string>? Tags
+    List<int>? TagIds
 );
 
 public record UpdateTaskRequest(
@@ -34,5 +35,5 @@ public record UpdateTaskRequest(
     string UserFullName,
     string UserTelephone,
     string UserEmail,
-    List<string>? Tags
+    List<int>? TagIds
 );

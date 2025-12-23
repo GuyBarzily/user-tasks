@@ -1,57 +1,54 @@
 import { Task, CreateTaskPayload } from "./types";
-import { mockFetchTasks, mockCreateTask, mockDeleteTask } from "./mockApi";
 
-// MOCK_FALLBACK: easy removal later -> delete mockApi.ts + remove these fallback branches
-const API_BASE = "https://localhost:7204/api/tasks";
+const API_BASE = "http://localhost:5296/api/tasks";
+
+async function handleResponse<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`API error ${res.status}: ${text || res.statusText}`);
+  }
+
+  return res.json();
+}
 
 export async function fetchTasks(): Promise<Task[]> {
   try {
     const res = await fetch(API_BASE);
-
-    if (!res.ok) {
-      // MOCK_FALLBACK
-      return Promise.resolve(mockFetchTasks());
-    }
-
-    return res.json();
-  } catch {
-    // MOCK_FALLBACK (server down / cert / CORS)
-    return Promise.resolve(mockFetchTasks());
+    return await handleResponse<Task[]>(res);
+  } catch (err) {
+    console.error("fetchTasks failed", err);
+    throw err; // let Redux / caller handle it
   }
 }
 
 export async function createTask(payload: CreateTaskPayload): Promise<Task> {
   try {
+    debugger
     const res = await fetch(API_BASE, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
-    if (!res.ok) {
-      // MOCK_FALLBACK
-      return Promise.resolve(mockCreateTask(payload));
-    }
-
-    return res.json();
-  } catch {
-    // MOCK_FALLBACK
-    return Promise.resolve(mockCreateTask(payload));
+    return await handleResponse<Task>(res);
+  } catch (err) {
+    console.error("createTask failed", err);
+    throw err;
   }
 }
 
 export async function deleteTask(id: number): Promise<void> {
   try {
-    const res = await fetch(`${API_BASE}/${id}`, { method: "DELETE" });
+    const res = await fetch(`${API_BASE}/${id}`, {
+      method: "DELETE",
+    });
 
     if (!res.ok) {
-      // MOCK_FALLBACK
-      mockDeleteTask(id);
-      return;
+      const text = await res.text();
+      throw new Error(`Delete failed ${res.status}: ${text || res.statusText}`);
     }
-  } catch {
-    // MOCK_FALLBACK
-    mockDeleteTask(id);
-    return;
+  } catch (err) {
+    console.error("deleteTask failed", err);
+    throw err;
   }
 }

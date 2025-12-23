@@ -45,7 +45,15 @@ public class TasksController : ControllerBase
         var validation = Validate(req.Title, req.UserFullName, req.UserTelephone, req.UserEmail);
         if (validation is not null) return validation;
 
-        var tags = await GetOrCreateTagsAsync(req.Tags);
+        List<Tag> tags;
+        try
+        {
+            tags = await GetTagsByIdsAsync(req.TagIds);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
 
         var task = new TaskItem
         {
@@ -62,13 +70,11 @@ public class TasksController : ControllerBase
         _db.Tasks.Add(task);
         await _db.SaveChangesAsync();
 
-        // reload tags for response
         var created = await _db.Tasks
             .Include(t => t.Tags)
             .FirstAsync(t => t.Id == task.Id);
 
-        var dto = TaskDtoFactory.ToDto(created);
-        return CreatedAtAction(nameof(GetById), new { id = dto.Id }, dto);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, TaskDtoFactory.ToDto(created));
     }
 
     [HttpPut("{id:int}")]
@@ -83,6 +89,16 @@ public class TasksController : ControllerBase
 
         if (task is null) return NotFound();
 
+        List<Tag> tags;
+        try
+        {
+            tags = await GetTagsByIdsAsync(req.TagIds);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+
         task.Title = req.Title.Trim();
         task.Description = (req.Description ?? string.Empty).Trim();
         task.DueDateUtc = req.DueDateUtc;
@@ -91,9 +107,7 @@ public class TasksController : ControllerBase
         task.UserTelephone = req.UserTelephone.Trim();
         task.UserEmail = req.UserEmail.Trim();
 
-        // replace tags
         task.Tags.Clear();
-        var tags = await GetOrCreateTagsAsync(req.Tags);
         foreach (var tag in tags)
             task.Tags.Add(tag);
 
@@ -135,40 +149,31 @@ public class TasksController : ControllerBase
         return null;
     }
 
-    private async Task<List<Tag>> GetOrCreateTagsAsync(List<string>? tagNames)
+    private async Task<List<Tag>> GetTagsByIdsAsync(List<int>? tagIds)
     {
-        if (tagNames is null || tagNames.Count == 0)
+        if (tagIds is null || tagIds.Count == 0)
             return new List<Tag>();
 
-        var cleaned = tagNames
-            .Where(t => !string.IsNullOrWhiteSpace(t))
-            .Select(t => t.Trim())
-            .Where(t => t.Length > 0)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+        var cleaned = tagIds
+            .Where(id => id > 0)
+            .Distinct()
             .ToList();
 
         if (cleaned.Count == 0)
             return new List<Tag>();
 
-        // Case-insensitive match (avoid duplicates)
-        var existing = await _db.Tags
-            .Where(t => cleaned.Contains(t.Name))
+        var tags = await _db.Tags
+            .Where(t => cleaned.Contains(t.Id))
             .ToListAsync();
 
-        var existingNames = existing.Select(t => t.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var missing = cleaned
-            .Where(name => !existingNames.Contains(name))
-            .Select(name => new Tag { Name = name })
-            .ToList();
-
-        if (missing.Count > 0)
+        // Validate all exist
+        if (tags.Count != cleaned.Count)
         {
-            _db.Tags.AddRange(missing);
-            await _db.SaveChangesAsync();
-            existing.AddRange(missing);
+            var found = tags.Select(t => t.Id).ToHashSet();
+            var missing = cleaned.Where(id => !found.Contains(id)).ToList();
+            throw new InvalidOperationException($"Unknown tag id(s): {string.Join(", ", missing)}");
         }
 
-        return existing;
+        return tags;
     }
 }
