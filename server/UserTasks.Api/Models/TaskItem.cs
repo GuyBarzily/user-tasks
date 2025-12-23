@@ -38,4 +38,8 @@ public class TaskItem
 
     // Tags (many-to-many)
     public List<Tag> Tags { get; set; } = new();
+
+    public DateTime? ReminderSentUtc { get; set; }  // null = not sent yet
+
 }
+
