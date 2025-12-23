@@ -1,66 +1,79 @@
-import React, { useEffect, useState } from 'react';
-import { createTask, getHealth, getTasks, TaskItem } from './services/tasksService'
+import { useEffect } from 'react';
+import { Card, Button } from 'react-bootstrap';
 
-function App() {
-  const [health, setHealth] = useState<any>(null);
-  const [tasks, setTasks] = useState<TaskItem[]>([]);
-  const [title, setTitle] = useState('');
-  const [error, setError] = useState<string>('');
+import PageContainer from './shared/components/PageContainer';
+import LoadingBox from './shared/components/LoadingBox';
+import ErrorBox from './shared/components/ErrorBox';
+
+import TaskForm from './features/tasks/components/TaskForm';
+import TaskList from './features/tasks/components/TaskList';
+import TaskFilters from './features/tasks/components/TaskFilters';
+
+import { useAppDispatch, useAppSelector } from './app/hooks';
+import {
+  loadTasks,
+  addTask,
+  removeTask,
+  clearTasksError,
+} from './features/tasks/tasksSlice';
+
+import type { CreateTaskPayload } from './features/tasks/types';
+
+export default function App() {
+  const dispatch = useAppDispatch();
+  const { items, status, error } = useAppSelector((s) => s.tasks);
 
   useEffect(() => {
-    (async () => {
-      try {
-        setError('');
-        setHealth(await getHealth());
-        setTasks(await getTasks());
-      } catch (e: any) {
-        setError(e?.message ?? 'Something went wrong');
-      }
-    })();
-  }, []);
+    dispatch(loadTasks());
+  }, [dispatch]);
 
-  const onAdd = async () => {
-    try {
-      setError('');
-      const created = await createTask(title);
-      setTasks(prev => [...prev, created]);
-      setTitle('');
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to add');
-    }
+  const onCreate = (payload: CreateTaskPayload) => {
+    dispatch(addTask(payload));
+  };
+
+  const onDelete = (id: number) => {
+    dispatch(removeTask(id));
+  };
+
+  const onRetry = () => {
+    dispatch(clearTasksError());
+    dispatch(loadTasks());
   };
 
   return (
-    <div style={{ maxWidth: 600, margin: '40px auto', fontFamily: 'Arial' }}>
-      <h1>User Tasks</h1>
+    <PageContainer
+      title="User Tasks"
+      subtitle="React + Redux Toolkit + .NET + SQL Server"
+    >
+      <Card className="shadow-sm border-0">
+        <Card.Body>
+          <TaskForm onSubmit={onCreate} isSubmitting={status === 'loading'} />
 
-      {error && <div style={{ color: 'crimson', marginBottom: 12 }}>{error}</div>}
+          {error && (
+            <div className="mt-3">
+              <ErrorBox message={error} />
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                className="mt-2"
+                onClick={onRetry}
+              >
+                Retry
+              </Button>
+            </div>
+          )}
 
-      <div style={{ marginBottom: 12 }}>
-        <strong>Tasks:</strong> {health ? JSON.stringify(health) : 'Loading...'}
-      </div>
+          <div className="mt-4">
+            <TaskFilters total={items.length} />
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="New task title"
-          style={{ flex: 1, padding: 8 }}
-        />
-        <button onClick={onAdd} disabled={!title.trim()} style={{ padding: '8px 12px' }}>
-          Add
-        </button>
-      </div>
-
-      <ul>
-        {tasks.map(t => (
-          <li key={t.id}>
-            #{t.id} — {t.title} {t.isDone ? '✅' : ''}
-          </li>
-        ))}
-      </ul>
-    </div>
+            {status === 'loading' ? (
+              <LoadingBox text="Loading tasks..." />
+            ) : (
+              <TaskList tasks={items} onDelete={onDelete} />
+            )}
+          </div>
+        </Card.Body>
+      </Card>
+    </PageContainer>
   );
 }
-
-export default App;
