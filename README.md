@@ -88,6 +88,27 @@ npm install
 npm start
 ```
 
+## 6) Running Tests
+Server (API) Tests
+
+The API includes automated tests using xUnit and ASP.NET Core TestServer.
+
+```
+dotnet test server/UserTasks.Api.Tests/UserTasks.Api.Tests.csproj
+```
+What is covered:
+
+- API endpoints (Tasks, Tags)
+
+- Validation errors (bad input, missing entities)
+
+- Database integration using an isolated test database
+
+- Happy paths + failure scenarios
+
+
+
+
 ## Notes
 
 - Database schema is created via EF Core migrations
@@ -97,3 +118,54 @@ npm start
 - RabbitMQ handles concurrent reminder processing safely
 
 - All services can be started independently
+
+
+## Client (React)
+
+- Built with React + TypeScript
+
+- State management via Redux Toolkit
+
+- Async operations handled with createAsyncThunk
+
+## Server (API)
+
+- ASP.NET Core Web API (.NET 8)
+
+- Entity Framework Core with SQL Server
+
+Clean REST endpoints:
+
+- Tasks
+
+- Tags
+
+- Many-to-many relationship between Tasks and Tags
+
+- Validation handled per request
+
+- Errors returned in a controlled, user-friendly format
+
+- Database schema managed via EF Core migrations
+
+## Worker Service
+
+- Background service using BackgroundService
+
+- Periodic polling for overdue tasks
+
+- Uses RabbitMQ for message publishing and consumption
+
+- Idempotent reminder handling via ReminderSentUtc
+
+- Safe for restarts and concurrent execution
+
+## Infrastructure (Docker)
+
+- SQL Server container for persistent data
+
+- RabbitMQ container for messaging
+
+- Docker volumes ensure data persistence across restarts
+
+- Entire system can be started with a single command:
