@@ -48,7 +48,7 @@ public class TasksController : ControllerBase
         List<Tag> tags;
         try
         {
-            tags = await GetTagsByIdsAsync(req.TagIds);
+            tags = await GetTagsByIdsAsync(req.Tags);
         }
         catch (InvalidOperationException ex)
         {
@@ -92,7 +92,7 @@ public class TasksController : ControllerBase
         List<Tag> tags;
         try
         {
-            tags = await GetTagsByIdsAsync(req.TagIds);
+            tags = await GetTagsByIdsAsync(req.Tags);
         }
         catch (InvalidOperationException ex)
         {

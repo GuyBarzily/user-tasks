@@ -11,7 +11,6 @@ export default function TaskList({ tasks, onDelete, onUpdate }: Props) {
     if (tasks.length === 0) {
         return <div className="text-muted py-3">No tasks yet</div>;
     }
-    console.log(tasks[0].tags)
 
     return (
         <div className="d-flex flex-column gap-3">
