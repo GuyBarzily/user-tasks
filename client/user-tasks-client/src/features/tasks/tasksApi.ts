@@ -28,7 +28,6 @@ export async function fetchTasks(): Promise<Task[]> {
 
 export async function createTask(payload: CreateTaskPayload): Promise<Task> {
   try {
-    debugger;
     const res = await fetch(API_BASE, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
