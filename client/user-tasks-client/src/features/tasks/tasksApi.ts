@@ -4,12 +4,19 @@ import { Task, CreateTaskPayload, UpdateTaskPayload } from "./types";
 const API_BASE = "http://localhost:5296/api/tasks";
 
 async function handleResponse<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`API error ${res.status}: ${text || res.statusText}`);
+  if (res.ok) return res.json();
+
+  let message = `Request failed (${res.status})`;
+
+  try {
+    const data = await res.json();
+    // ProblemDetails-style
+    message = data?.title || data?.error || message;
+  } catch {
+    // ignore parse errors
   }
 
-  return res.json();
+  throw new Error(message);
 }
 
 export async function fetchTasks(): Promise<Task[]> {
@@ -18,8 +25,8 @@ export async function fetchTasks(): Promise<Task[]> {
     return await handleResponse<Task[]>(res);
   } catch (err) {
     console.error("fetchTasks failed", err);
-    return Promise.resolve(mockFetchTasks());
-    // throw err; // let Redux / caller handle it
+    // return Promise.resolve(mockFetchTasks());
+    throw err;
   }
 }
 
@@ -35,8 +42,8 @@ export async function createTask(payload: CreateTaskPayload): Promise<Task> {
     return await handleResponse<Task>(res);
   } catch (err) {
     console.error("createTask failed", err);
-    return Promise.resolve(mockCreateTask(payload));
-    // throw err;
+    // return Promise.resolve(mockCreateTask(payload));
+    throw err;
   }
 }
 
@@ -48,8 +55,8 @@ export async function deleteTask(id: number): Promise<void> {
 
     if (!res.ok) {
       const text = await res.text();
-      mockDeleteTask(id);
-      // throw new Error(`Delete failed ${res.status}: ${text || res.statusText}`);
+      // mockDeleteTask(id);
+      throw new Error(`Delete failed ${res.status}: ${text || res.statusText}`);
     }
   } catch (err) {
     console.error("deleteTask failed", err);

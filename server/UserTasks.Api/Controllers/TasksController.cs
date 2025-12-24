@@ -152,7 +152,7 @@ public class TasksController : ControllerBase
     private async Task<List<Tag>> GetTagsByIdsAsync(List<int>? tagIds)
     {
         if (tagIds is null || tagIds.Count == 0)
-            return new List<Tag>();
+            return [];
 
         var cleaned = tagIds
             .Where(id => id > 0)
@@ -160,13 +160,12 @@ public class TasksController : ControllerBase
             .ToList();
 
         if (cleaned.Count == 0)
-            return new List<Tag>();
+            return [];
 
         var tags = await _db.Tags
             .Where(t => cleaned.Contains(t.Id))
             .ToListAsync();
 
-        // Validate all exist
         if (tags.Count != cleaned.Count)
         {
             var found = tags.Select(t => t.Id).ToHashSet();

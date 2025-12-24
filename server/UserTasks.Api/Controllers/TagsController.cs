@@ -51,10 +51,9 @@ public class TagsController : ControllerBase
         if (string.IsNullOrWhiteSpace(name))
             return BadRequest(new { error = "Name is required" });
 
-        if (name.Length > 50) // adjust if your Tag model uses different max length
+        if (name.Length > 50) 
             return BadRequest(new { error = "Name is too long" });
 
-        // Case-insensitive uniqueness (avoid duplicates)
         var exists = await _db.Tags.AnyAsync(t => t.Name.ToLower() == name.ToLower());
         if (exists)
             return Conflict(new { error = "Tag already exists" });

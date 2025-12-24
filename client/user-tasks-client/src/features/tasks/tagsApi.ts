@@ -1,87 +1,70 @@
 export type TagSuggestion = { id: number; name: string };
 
-// MOCK_FALLBACK
-const MOCK_TAGS: TagSuggestion[] = [
-  { id: 1, name: "backend" },
-  { id: 2, name: "frontend" },
-  { id: 3, name: "redux" },
-  { id: 4, name: "ef" },
-  { id: 5, name: "docker" },
-  { id: 6, name: "sql" },
-  { id: 7, name: "api" },
-  { id: 8, name: "testing" },
-];
-
-let nextMockTagId = 100;
-
 const TAGS_ENDPOINT = "http://localhost:5296/api/tags";
 
+async function readErrorMessage(res: Response): Promise<string> {
+  // Prefer ProblemDetails-style: { title, status } or { error }
+  try {
+    const data = await res.json();
+    return (
+      data?.title ||
+      data?.error ||
+      (typeof data === "string" ? data : "") ||
+      res.statusText
+    );
+  } catch {
+    // fallback (non-JSON)
+    try {
+      const text = await res.text();
+      return text || res.statusText;
+    } catch {
+      return res.statusText;
+    }
+  }
+}
+
+async function handleResponse<T>(res: Response): Promise<T> {
+  if (res.ok) {
+    // some endpoints might return 204 (no content)
+    if (res.status === 204) return undefined as unknown as T;
+    return (await res.json()) as T;
+  }
+
+  const msg = await readErrorMessage(res);
+  throw new Error(msg || `Request failed (${res.status})`);
+}
+
+/**
+ * GET /api/tags?query=...
+ */
 export async function searchTags(query: string): Promise<TagSuggestion[]> {
   const q = query.trim();
-  if (q.length < 1) return [];
+  if (!q) return [];
 
-  try {
-    const res = await fetch(`${TAGS_ENDPOINT}?query=${encodeURIComponent(q)}`);
-    if (!res.ok) return mockSearch(q);
-    return res.json();
-  } catch {
-    return mockSearch(q);
-  }
+  const res = await fetch(`${TAGS_ENDPOINT}?query=${encodeURIComponent(q)}`);
+  return await handleResponse<TagSuggestion[]>(res);
 }
 
-// ✅ optional (if later you want to load all tags)
+/**
+ * GET /api/tags
+ */
 export async function fetchAllTags(): Promise<TagSuggestion[]> {
-  try {
-    const res = await fetch(`${TAGS_ENDPOINT}`);
-    if (!res.ok) return [...MOCK_TAGS];
-    return res.json();
-  } catch {
-    return [...MOCK_TAGS];
-  }
+  const res = await fetch(TAGS_ENDPOINT);
+  return await handleResponse<TagSuggestion[]>(res);
 }
 
-// ✅ create tag
+/**
+ * POST /api/tags  body: { name: string }
+ */
 export async function createTagApi(name: string): Promise<TagSuggestion> {
   const trimmed = name.trim();
   if (!trimmed) throw new Error("Tag name is required");
 
-  try {
-    const res = await fetch(TAGS_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: trimmed }),
-    });
+  const res = await fetch(TAGS_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: trimmed }),
+  });
 
-    if (!res.ok) {
-      // MOCK_FALLBACK
-      return mockCreate(trimmed);
-    }
-
-    return res.json();
-  } catch {
-    return mockCreate(trimmed);
-  }
-}
-
-function mockSearch(q: string): TagSuggestion[] {
-  const lower = q.toLowerCase();
-  return MOCK_TAGS.filter((t) => t.name.toLowerCase().includes(lower)).slice(
-    0,
-    8
-  );
-}
-
-// ✅ mock create
-function mockCreate(name: string): TagSuggestion {
-  const exists = MOCK_TAGS.some(
-    (t) => t.name.toLowerCase() === name.toLowerCase()
-  );
-  if (exists) {
-    // return existing (simulate unique index on name)
-    return MOCK_TAGS.find((t) => t.name.toLowerCase() === name.toLowerCase())!;
-  }
-
-  const created: TagSuggestion = { id: nextMockTagId++, name };
-  MOCK_TAGS.push(created);
-  return created;
+  return await handleResponse<TagSuggestion>(res);
 }
