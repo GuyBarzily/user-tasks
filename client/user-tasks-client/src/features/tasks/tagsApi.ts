@@ -14,7 +14,7 @@ const MOCK_TAGS: TagSuggestion[] = [
 
 let nextMockTagId = 100;
 
-const TAGS_ENDPOINT = "https://localhost:7204/api/tags";
+const TAGS_ENDPOINT = "http://localhost:5296/api/tags";
 
 export async function searchTags(query: string): Promise<TagSuggestion[]> {
   const q = query.trim();

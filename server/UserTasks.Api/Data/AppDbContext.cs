@@ -17,6 +17,11 @@ public class AppDbContext : DbContext
             .HasMany(t => t.Tags)
             .WithMany(t => t.Tasks);
 
+        modelBuilder.Entity<Tag>()
+            .HasIndex(t => t.Name)
+            .IsUnique();
+
+
         base.OnModelCreating(modelBuilder);
     }
 }

@@ -5,18 +5,17 @@ namespace UserTasks.Api.Factories;
 
 public static class TaskDtoFactory
 {
-    public static TaskDto ToDto(TaskItem t) =>
-        new(
-            t.Id,
-            t.Title,
-            t.Description,
-            t.DueDateUtc,
-            t.Priority,
-            t.UserFullName,
-            t.UserTelephone,
-            t.UserEmail,
-            t.Tags.Select(x => x.Id).ToList(),
-            t.Tags.Select(x => x.Name).ToList(),
-            t.CreatedAtUtc
+    public static TaskDto ToDto(TaskItem task)
+        => new(
+            task.Id,
+            task.Title,
+            task.Description,
+            task.DueDateUtc,
+            task.Priority,
+            task.UserFullName,
+            task.UserTelephone,
+            task.UserEmail,
+            task.Tags.Select(t => new TagDto(t.Id, t.Name)).ToList(),
+            task.CreatedAtUtc
         );
 }
