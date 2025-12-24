@@ -1,53 +1,99 @@
-# User Tasks – Full Stack Assignment
+# User Tasks – Setup & Run Guide
 
-This project is a full-stack task management application built as a technical assignment.
+This project is a small full-stack system for managing user tasks with reminder handling.
 
-It demonstrates how I approach:
-
-- Feature design from requirements
-- Client–server separation
-- State management and validation on the frontend
-- A realistic relational data model on the backend
-
-The application allows users to create and manage tasks with metadata such as priority, due date, user details, and tags.
+It includes:
+- **Client** – React application
+- **Server (API)** – .NET Web API
+- **Worker** – .NET Background Service
+- **Infrastructure** – SQL Server + RabbitMQ (Docker)
 
 ---
 
-## Tech Stack
+## 1) Requirements
 
-### Client
-
-- React
-- TypeScript
-- Redux Toolkit
-- React-Redux
-- Bootstrap / React-Bootstrap
-- Jest (unit testing)
-
-### Server
-
-- ASP.NET Core Web API
-- Entity Framework Core
-- SQL Server
-- Docker
+- Docker Desktop
+- .NET SDK 8+
+- Node.js 18+
+- Terminal (macOS / Linux / Windows)
 
 ---
 
-## Core Features
+## 2) Start Docker
 
-- Create tasks with:
-  - Title
-  - Description
-  - Due date
-  - Priority
-  - User details (full name, telephone, email)
-  - Tags (many-to-many relationship)
-- Client-side form validation with clear error messages
-- Debounced tag search
-- Centralized state management using Redux Toolkit
-- Clean separation between UI, business logic, and data access
-- Unit tests for validation logic
+From the project root, run:
 
----
+```bash
+docker compose up -d
+```
 
-## Project Structure
+| Service    | Port(s)     | Purpose                   |
+| ---------- | ----------- | ------------------------- |
+| SQL Server | 1433        | Main database             |
+| RabbitMQ   | 5672, 15672 | Messaging + management UI |
+
+Verify containers are running:
+```
+docker ps
+```
+
+RabbitMQ Management UI:
+```
+http://localhost:15672
+username: guest
+password: guest
+```
+
+## 3) Start the Server (API)
+
+Open a new terminal:
+```
+cd server/UserTasks.Api
+dotnet restore
+dotnet ef database update
+dotnet run
+```
+The API will be available at:
+```
+http://localhost:5296
+```
+
+## 4) Start the Worker
+Open another terminal:
+```
+cd server/UserTasks.Worker
+dotnet restore
+dotnet run
+```
+
+Expected logs:
+
+Worker started
+
+RabbitMQ connected
+
+Periodic polling for overdue tasks
+
+Reminder logs when tasks are due
+Example:
+```
+Hi your Task is due 1 (Interview reminder test)
+```
+
+## 5) Start the Client
+Open another terminal:
+```
+cd client
+npm install
+npm start
+```
+
+## Notes
+
+- Database schema is created via EF Core migrations
+
+- Worker uses polling + idempotency (ReminderSentUtc)
+
+- RabbitMQ handles concurrent reminder processing safely
+
+- All services can be started independently
