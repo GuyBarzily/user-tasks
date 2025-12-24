@@ -1,6 +1,6 @@
 export type TagSuggestion = { id: number; name: string };
 
-// MOCK_FALLBACK: easy removal later (delete mock section + replace with real fetch)
+// MOCK_FALLBACK
 const MOCK_TAGS: TagSuggestion[] = [
   { id: 1, name: "backend" },
   { id: 2, name: "frontend" },
@@ -12,23 +12,54 @@ const MOCK_TAGS: TagSuggestion[] = [
   { id: 8, name: "testing" },
 ];
 
-// When server exists, point this to your endpoint, e.g.:
-// GET https://localhost:7204/api/tags?query=do
+let nextMockTagId = 100;
+
 const TAGS_ENDPOINT = "https://localhost:7204/api/tags";
 
 export async function searchTags(query: string): Promise<TagSuggestion[]> {
   const q = query.trim();
   if (q.length < 1) return [];
 
-  // MOCK_FALLBACK
   try {
     const res = await fetch(`${TAGS_ENDPOINT}?query=${encodeURIComponent(q)}`);
-    if (!res.ok) {
-      return mockSearch(q);
-    }
+    if (!res.ok) return mockSearch(q);
     return res.json();
   } catch {
     return mockSearch(q);
+  }
+}
+
+// ✅ optional (if later you want to load all tags)
+export async function fetchAllTags(): Promise<TagSuggestion[]> {
+  try {
+    const res = await fetch(`${TAGS_ENDPOINT}`);
+    if (!res.ok) return [...MOCK_TAGS];
+    return res.json();
+  } catch {
+    return [...MOCK_TAGS];
+  }
+}
+
+// ✅ create tag
+export async function createTagApi(name: string): Promise<TagSuggestion> {
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error("Tag name is required");
+
+  try {
+    const res = await fetch(TAGS_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: trimmed }),
+    });
+
+    if (!res.ok) {
+      // MOCK_FALLBACK
+      return mockCreate(trimmed);
+    }
+
+    return res.json();
+  } catch {
+    return mockCreate(trimmed);
   }
 }
 
@@ -38,4 +69,19 @@ function mockSearch(q: string): TagSuggestion[] {
     0,
     8
   );
+}
+
+// ✅ mock create
+function mockCreate(name: string): TagSuggestion {
+  const exists = MOCK_TAGS.some(
+    (t) => t.name.toLowerCase() === name.toLowerCase()
+  );
+  if (exists) {
+    // return existing (simulate unique index on name)
+    return MOCK_TAGS.find((t) => t.name.toLowerCase() === name.toLowerCase())!;
+  }
+
+  const created: TagSuggestion = { id: nextMockTagId++, name };
+  MOCK_TAGS.push(created);
+  return created;
 }

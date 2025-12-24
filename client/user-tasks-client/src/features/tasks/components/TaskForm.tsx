@@ -11,6 +11,8 @@ import { validateTaskForm, isValid, shouldShowError } from "../validation";
 type Props = {
     onSubmit: (payload: CreateTaskPayload) => void;
     isSubmitting?: boolean;
+    onAddTagClick: () => void;
+
 };
 
 const PRIORITY_LABEL: Record<number, string> = {
@@ -19,7 +21,7 @@ const PRIORITY_LABEL: Record<number, string> = {
     2: "High",
 };
 
-export default function TaskForm({ onSubmit, isSubmitting = false }: Props) {
+export default function TaskForm({ onSubmit, isSubmitting = false, onAddTagClick }: Props) {
     const [hasSubmitted, setHasSubmitted] = useState(false);
 
     // task
@@ -168,10 +170,23 @@ export default function TaskForm({ onSubmit, isSubmitting = false }: Props) {
             <Row className="g-3">
                 <Col xs={12} className="d-flex justify-content-between align-items-center">
                     <div className="fw-semibold">Create Task</div>
-                    <Button type="submit">
-                        {isSubmitting ? "Saving…" : "Add Task"}
-                    </Button>
+
+                    <div className="d-flex gap-2">
+                        <Button
+                            type="button"
+                            variant="outline-primary"
+                            onClick={onAddTagClick}
+                            disabled={isSubmitting}
+                        >
+                            Add Tag
+                        </Button>
+
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? "Saving…" : "Add Task"}
+                        </Button>
+                    </div>
                 </Col>
+
 
                 <Col md={8}>
                     <Form.Group>
