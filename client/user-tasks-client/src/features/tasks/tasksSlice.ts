@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import type { Task, CreateTaskPayload } from "./types";
+import type { Task, CreateTaskPayload, UpdateTaskPayload } from "./types";
 import * as api from "./tasksApi";
 
 type TasksState = {
@@ -34,6 +34,13 @@ export const removeTask = createAsyncThunk(
   async (id: number) => {
     await api.deleteTask(id);
     return id;
+  }
+);
+
+export const updateTask = createAsyncThunk(
+  "tasks/updateTask",
+  async (payload: UpdateTaskPayload) => {
+    return await api.updateTaskApi(payload);
   }
 );
 
@@ -73,6 +80,21 @@ const tasksSlice = createSlice({
       // Remove task
       .addCase(removeTask.fulfilled, (state, action: PayloadAction<number>) => {
         state.items = state.items.filter((task) => task.id !== action.payload);
+      })
+      .addCase(updateTask.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(updateTask.fulfilled, (state, action) => {
+        state.status = "succeeded";
+
+        const idx = state.items.findIndex((t) => t.id === action.payload.id);
+        if (idx !== -1) {
+          state.items[idx] = action.payload;
+        }
+      })
+      .addCase(updateTask.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.error.message ?? "Failed to update task";
       });
   },
 });

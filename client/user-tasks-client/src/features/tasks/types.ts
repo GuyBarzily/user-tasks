@@ -33,3 +33,17 @@ export type CreateTaskPayload = {
 
   tags: number[];
 };
+
+export type UpdateTaskPayload = {
+  id: number;
+  title: string;
+  description: string;
+  dueDateUtc: string | null;
+  priority: TaskPriority;
+
+  userFullName: string;
+  userTelephone: string;
+  userEmail: string;
+
+  tags: number[];
+};

@@ -1,4 +1,4 @@
-import type { Task, CreateTaskPayload, Tag } from "./types";
+import type { Task, CreateTaskPayload, Tag, UpdateTaskPayload } from "./types";
 
 /**
  * Mock storage (in-memory).
@@ -73,4 +73,32 @@ export function mockCreateTask(payload: CreateTaskPayload): Task {
 
 export function mockDeleteTask(id: number): void {
   mockTasks = mockTasks.filter((t) => t.id !== id);
+}
+
+export function mockUpdateTask(payload: UpdateTaskPayload): Task {
+  const idx = mockTasks.findIndex((t) => t.id === payload.id);
+
+  if (idx === -1) {
+    throw new Error(`Mock task ${payload.id} not found`);
+  }
+
+  const tags: Tag[] = payload.tags
+    .map((id) => tagsById.get(id))
+    .filter(Boolean) as Tag[];
+
+  const updated: Task = {
+    ...mockTasks[idx],
+    title: payload.title.trim(),
+    description: payload.description ?? "",
+    dueDateUtc: payload.dueDateUtc ?? null,
+    priority: payload.priority,
+    userFullName: payload.userFullName,
+    userTelephone: payload.userTelephone,
+    userEmail: payload.userEmail,
+    tags, // ✅ resolved Tag[]
+  };
+
+  mockTasks = mockTasks.map((t) => (t.id === payload.id ? updated : t));
+
+  return updated;
 }
