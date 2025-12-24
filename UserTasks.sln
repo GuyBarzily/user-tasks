@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserTasks.Api", "server\Use
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserTasks.Worker", "server\UserTasks.Worker\UserTasks.Worker.csproj", "{D0440492-1A3D-4F8D-9496-EDFBE409AEA9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserTasks.Api.Tests", "server\UserTasks.Api.Tests\UserTasks.Api.Tests.csproj", "{EE51174D-5985-4C8A-AB8B-438F721222CF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,9 +28,14 @@ Global
 		{D0440492-1A3D-4F8D-9496-EDFBE409AEA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D0440492-1A3D-4F8D-9496-EDFBE409AEA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D0440492-1A3D-4F8D-9496-EDFBE409AEA9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE51174D-5985-4C8A-AB8B-438F721222CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE51174D-5985-4C8A-AB8B-438F721222CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE51174D-5985-4C8A-AB8B-438F721222CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE51174D-5985-4C8A-AB8B-438F721222CF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{5FBB4C7E-FBC1-4479-A2FC-CEDEB6E76B87} = {75CA5BA2-6794-44A2-AA8A-E4568721F589}
 		{D0440492-1A3D-4F8D-9496-EDFBE409AEA9} = {75CA5BA2-6794-44A2-AA8A-E4568721F589}
+		{EE51174D-5985-4C8A-AB8B-438F721222CF} = {75CA5BA2-6794-44A2-AA8A-E4568721F589}
 	EndGlobalSection
 EndGlobal
