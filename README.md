@@ -83,7 +83,7 @@ Hi your Task is due 1 (Interview reminder test)
 ## 5) Start the Client
 Open another terminal:
 ```
-cd client
+cd client/user-tasks-client
 npm install
 npm start
 ```
