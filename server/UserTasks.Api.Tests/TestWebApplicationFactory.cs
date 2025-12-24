@@ -15,13 +15,11 @@ public class TestWebApplicationFactory
     {
         builder.ConfigureServices(services =>
         {
-            // Remove real DB
             var descriptor = services.Single(
                 d => d.ServiceType == typeof(DbContextOptions<AppDbContext>)
             );
             services.Remove(descriptor);
 
-            // SQLite in-memory
             var connection = new SqliteConnection("DataSource=:memory:");
             connection.Open();
 
@@ -29,11 +27,11 @@ public class TestWebApplicationFactory
                 options.UseSqlite(connection)
             );
 
-            // Build & migrate
             var sp = services.BuildServiceProvider();
             using var scope = sp.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.Database.EnsureCreated();
+
         });
     }
 }

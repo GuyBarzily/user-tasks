@@ -1,4 +1,3 @@
-import { mockCreateTask, mockDeleteTask, mockFetchTasks } from "./mockApi";
 import { Task, CreateTaskPayload, UpdateTaskPayload } from "./types";
 
 const API_BASE = "http://localhost:5296/api/tasks";
@@ -10,11 +9,8 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
   try {
     const data = await res.json();
-    // ProblemDetails-style
     message = data?.title || data?.error || message;
-  } catch {
-    // ignore parse errors
-  }
+  } catch {}
 
   throw new Error(message);
 }

@@ -13,7 +13,6 @@
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
 
-    <!-- ✅ Integration test support -->
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.22" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.22" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.22" />

@@ -60,7 +60,6 @@ app.UseExceptionHandler(errApp =>
 });
 app.UseCors("DevCors");
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
