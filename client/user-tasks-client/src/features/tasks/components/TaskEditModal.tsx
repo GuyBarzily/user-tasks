@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Modal, Button, Form } from 'react-bootstrap';
 import type { Task, UpdateTaskPayload, TaskPriority } from '../types';
+import type { TagSuggestion } from "../tagsApi";
+import TagSelector from './TagSelector';
+
+
 
 type Props = {
     show: boolean;
@@ -12,17 +16,15 @@ type Props = {
 export default function TaskEditModal({ show, task, onClose, onSubmit }: Props) {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [dueLocal, setDueLocal] = useState(''); // datetime-local string
+    const [dueLocal, setDueLocal] = useState(''); 
     const [priority, setPriority] = useState<TaskPriority>(1);
 
-    // if you store tags as {id,name} in the task, send ids on update
-    const [tags, setTags] = useState<number[]>([]);
+    const [selectedTags, setSelectedTags] = useState<TagSuggestion[]>([]);
 
     const [userFullName, setUserFullName] = useState('');
     const [userTelephone, setUserTelephone] = useState('');
     const [userEmail, setUserEmail] = useState('');
 
-    // load selected task into state when modal opens
     useEffect(() => {
         if (!task) return;
 
@@ -34,10 +36,9 @@ export default function TaskEditModal({ show, task, onClose, onSubmit }: Props) 
         setUserTelephone(task.userTelephone ?? '');
         setUserEmail(task.userEmail ?? '');
 
-        setTags(task.tags?.map(t => t.id) ?? []);
+        setSelectedTags(task.tags?.map(t => ({ id: t.id, name: t.name })) ?? []);
 
-        // Convert UTC string -> local datetime-local value
-        // datetime-local expects: YYYY-MM-DDTHH:mm
+
         if (task.dueDateUtc) {
             const d = new Date(task.dueDateUtc);
             const pad = (n: number) => String(n).padStart(2, '0');
@@ -61,13 +62,12 @@ export default function TaskEditModal({ show, task, onClose, onSubmit }: Props) 
             id: task.id,
             title: title.trim(),
             description: description.trim(),
-            // send as UTC ISO string or null (depends on your API contract)
             dueDateUtc: dueLocal ? new Date(dueLocal).toISOString() : null,
             priority,
             userFullName: userFullName.trim(),
             userTelephone: userTelephone.trim(),
             userEmail: userEmail.trim(),
-            tags,
+            tags: selectedTags.map(t => t.id),
         };
 
         onSubmit(payload);
@@ -134,25 +134,12 @@ export default function TaskEditModal({ show, task, onClose, onSubmit }: Props) 
                         <Form.Control value={userEmail} onChange={(e) => setUserEmail(e.target.value)} />
                     </Form.Group>
 
-                    <Form.Group className="mb-2">
-                        <Form.Label>Tag IDs</Form.Label>
-                        <Form.Control
-                            placeholder="e.g. 1,2,5"
-                            value={tags.join(',')}
-                            onChange={(e) => {
-                                const ids = e.target.value
-                                    .split(',')
-                                    .map(s => s.trim())
-                                    .filter(Boolean)
-                                    .map(Number)
-                                    .filter(n => Number.isFinite(n));
-                                setTags(ids);
-                            }}
+                    <TagSelector
+                        label="Tags"
+                        selected={selectedTags}
+                        onChange={setSelectedTags}
                         />
-                        <div className="text-muted small mt-1">
-                            Temporary UI: type tag IDs. (Later you can reuse your Tag picker.)
-                        </div>
-                    </Form.Group>
+
                 </Form>
             </Modal.Body>
 

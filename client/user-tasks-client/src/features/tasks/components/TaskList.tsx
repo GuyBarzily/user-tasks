@@ -11,6 +11,7 @@ export default function TaskList({ tasks, onDelete, onUpdate }: Props) {
     if (tasks.length === 0) {
         return <div className="text-muted py-3">No tasks yet</div>;
     }
+    console.log(tasks[0].tags)
 
     return (
         <div className="d-flex flex-column gap-3">
@@ -23,7 +24,7 @@ export default function TaskList({ tasks, onDelete, onUpdate }: Props) {
                                 <div className="text-muted small mb-2">
                                     {t.description}
                                 </div>
-
+                                
                                 <div className="d-flex flex-wrap gap-2">
                                     {t.tags.map((tag) => (
                                         <Badge key={tag.id} bg="info">

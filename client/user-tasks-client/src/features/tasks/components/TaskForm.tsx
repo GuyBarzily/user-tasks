@@ -7,6 +7,7 @@ import { searchTags } from "../tagsApi";
 import { useDebouncedValue } from "../../../hooks/useDebouncedValue";
 
 import { validateTaskForm, isValid, shouldShowError } from "../validation";
+import TagSelector from "./TagSelector";
 
 type Props = {
     onSubmit: (payload: CreateTaskPayload) => void;
@@ -244,81 +245,13 @@ export default function TaskForm({ onSubmit, isSubmitting = false, onAddTagClick
                 </Col>
 
                 <Col md={6}>
-                    <Form.Group>
-                        <Form.Label>Tags *</Form.Label>
-
-                        <div ref={tagBoxRef} style={{ position: "relative" }}>
-                            <InputGroup>
-                                <Form.Control
-                                    value={tagInput}
-                                    onChange={(e) => setTagInput(e.target.value)}
-                                    placeholder="Search tags…"
-                                    isInvalid={showErrors && !!errors.selectedTags}
-                                    onFocus={() => {
-                                        if (suggestions.length > 0) setIsDropdownOpen(true);
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") e.preventDefault();
-                                        if (e.key === "Escape") setIsDropdownOpen(false);
-                                    }}
-                                    onBlur={() => {
-                                        setTimeout(() => setIsDropdownOpen(false), 120);
-                                    }}
-                                />
-                            </InputGroup>
-
-                            <Form.Control.Feedback
-                                type="invalid"
-                                style={{ display: showErrors && errors.selectedTags ? "block" : "none" }}
-                            >
-                                {errors.selectedTags}
-                            </Form.Control.Feedback>
-
-                            {isSearching && debouncedQuery.trim() && (
-                                <div className="small text-muted mt-1">
-                                    <Spinner animation="border" size="sm" className="me-2" />
-                                    Searching…
-                                </div>
-                            )}
-
-                            {isDropdownOpen && suggestions.length > 0 && (
-                                <ListGroup
-                                    className="shadow"
-                                    style={{
-                                        position: "absolute",
-                                        top: "100%",
-                                        left: 0,
-                                        right: 0,
-                                        zIndex: 10,
-                                        marginTop: 6,
-                                        maxHeight: 220,
-                                        overflowY: "auto",
-                                    }}
-                                >
-                                    {suggestions.map((s) => (
-                                        <ListGroup.Item action key={s.id} onMouseDown={() => addTag(s)}>
-                                            {s.name}
-                                        </ListGroup.Item>
-                                    ))}
-                                </ListGroup>
-                            )}
-                        </div>
-
-                        {selectedTags.length > 0 && (
-                            <div className="mt-2 d-flex flex-wrap gap-2">
-                                {selectedTags.map((t) => (
-                                    <Badge
-                                        bg="secondary"
-                                        key={t.id}
-                                        style={{ cursor: "pointer" }}
-                                        onClick={() => removeTag(t.id)}
-                                    >
-                                        {t.name} ✕
-                                    </Badge>
-                                ))}
-                            </div>
-                        )}
-                    </Form.Group>
+                <TagSelector
+                    label="Tags *"
+                    selected={selectedTags}
+                    onChange={setSelectedTags}
+                    isInvalid={showErrors && !!errors.selectedTags}
+                    errorText={errors.selectedTags}
+                    />
                 </Col>
 
                 <Col xs={12} className="pt-2 fw-semibold">
