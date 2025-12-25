@@ -53,7 +53,6 @@ Open a new terminal:
 
 ```
 cd server/UserTasks.Api
-dotnet tool restore
 dotnet restore
 dotnet ef database update
 dotnet run
