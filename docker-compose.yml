@@ -1,42 +1,95 @@
+version: "3.9"
+
 services:
-  sqlserver:
+  sql:
     image: mcr.microsoft.com/mssql/server:2022-latest
     platform: linux/amd64
-    container_name: user-tasks-sql
+    container_name: usertasks-sql
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "YourStrong!Passw0rd123"
+      MSSQL_SA_PASSWORD: "YourStrong!Passw0rd"
     ports:
       - "1433:1433"
     volumes:
-      - usertasks-sql-data:/var/opt/mssql
+      - usertasks_mssql_data:/var/opt/mssql
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P $$MSSQL_SA_PASSWORD -Q 'SELECT 1' -C || exit 1",
+          '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "YourStrong!Passw0rd" -Q "SELECT 1" -C || exit 1',
         ]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 30
+      start_period: 20s
 
-  rabbitmq:
+  rabbit:
     image: rabbitmq:3-management
-    container_name: user-tasks-rabbit
+    container_name: usertasks-rabbit
     ports:
-      - "5672:5672" # AMQP (your apps connect here)
-      - "15672:15672" # Management UI
+      - "5672:5672"
+      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
-    volumes:
-      - usertasks-rabbit-data:/var/lib/rabbitmq
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 30
+
+  api:
+    build:
+      context: ./server
+      dockerfile: UserTasks.Api/Dockerfile
+    container_name: usertasks-api
+    depends_on:
+      sql:
+        condition: service_healthy
+      rabbit:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      ConnectionStrings__Default: "Server=sql;Database=UserTasksDb;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;Encrypt=False;"
+      EnableSwagger: "true"
+      EnableHttpsRedirection: "false"
+      ApplyMigrationsOnStartup: "true"
+      RabbitMQ__Host: "rabbit"
+      RabbitMQ__Port: "5672"
+      RabbitMQ__Username: "guest"
+      RabbitMQ__Password: "guest"
+
+  worker:
+    build:
+      context: ./server
+      dockerfile: UserTasks.Worker/Dockerfile
+    container_name: usertasks-worker
+    depends_on:
+      api:
+        condition: service_started
+      rabbit:
+        condition: service_healthy
+      sql:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Default: "Server=sql;Database=UserTasksDb;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;Encrypt=False;"
+      RabbitMQ__Host: "rabbit"
+      RabbitMQ__Port: "5672"
+      RabbitMQ__Username: "guest"
+      RabbitMQ__Password: "guest"
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: usertasks-client
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    environment:
+      REACT_APP_API_BASE_URL: "http://localhost:8080"
 
 volumes:
-  usertasks-sql-data:
-  usertasks-rabbit-data:
+  usertasks_mssql_data:
