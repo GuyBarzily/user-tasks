@@ -53,6 +53,7 @@ Open a new terminal:
 
 ```
 cd server/UserTasks.Api
+dotnet tool restore
 dotnet restore
 dotnet ef database update
 dotnet run
@@ -69,12 +70,9 @@ http://localhost:5296
 Open another terminal:
 
 ```
-cd server/UserTasks.Api
-dotnet tool restore
+cd server/UserTasks.Worker
 dotnet restore
-dotnet ef database update
 dotnet run
-
 ```
 
 Expected logs:
