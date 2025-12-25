@@ -12,7 +12,7 @@ builder.Services.Configure<RabbitMqOptions>(
 // ---- DB ----
 builder.Services.AddDbContext<WorkerDbContext>(options =>
 {
-    var cs = builder.Configuration.GetConnectionString("SqlServer");
+    var cs = builder.Configuration.GetConnectionString("Default");
     options.UseSqlServer(cs);
 });
 

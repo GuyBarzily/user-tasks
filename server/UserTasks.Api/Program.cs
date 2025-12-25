@@ -1,3 +1,4 @@
+using System.Net.Sockets;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -5,7 +6,6 @@ using UserTasks.Api.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -46,33 +46,25 @@ app.UseExceptionHandler(errApp =>
 
         context.Response.StatusCode = status;
 
-        await context.Response.WriteAsJsonAsync(new
-        {
-            title,
-            status
-        });
+        await context.Response.WriteAsJsonAsync(new { title, status });
     });
 });
 
-bool enableSwagger = app.Configuration.GetValue("EnableSwagger", false);
-bool enableHttpsRedirect = app.Configuration.GetValue("EnableHttpsRedirection", false);
-bool applyMigrations = app.Configuration.GetValue("ApplyMigrationsOnStartup", true);
-
 app.UseCors("DevCors");
 
-if (enableSwagger)
+if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    // NOTE: keep HTTP in dev unless you really need HTTPS
+    // app.UseHttpsRedirection();
 }
 
-
-app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
 
+// -------------------- Apply migrations on startup (NO dotnet-ef needed) --------------------
+var applyMigrations = app.Configuration.GetValue("ApplyMigrationsOnStartup", true);
 if (applyMigrations)
 {
     await ApplyMigrationsWithRetryAsync(app.Services, app.Logger);
@@ -82,7 +74,7 @@ app.Run();
 
 static async Task ApplyMigrationsWithRetryAsync(IServiceProvider services, ILogger logger)
 {
-    const int maxAttempts = 10;
+    const int maxAttempts = 20;
     var delay = TimeSpan.FromSeconds(3);
 
     for (int attempt = 1; attempt <= maxAttempts; attempt++)
@@ -92,26 +84,35 @@ static async Task ApplyMigrationsWithRetryAsync(IServiceProvider services, ILogg
             using var scope = services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            logger.LogInformation("Applying EF Core migrations (attempt {Attempt}/{MaxAttempts})...", attempt, maxAttempts);
+            logger.LogInformation(
+                "Applying EF Core migrations (attempt {Attempt}/{MaxAttempts})...",
+                attempt, maxAttempts);
+
             await db.Database.MigrateAsync();
+
             logger.LogInformation("EF Core migrations applied successfully.");
             return;
         }
-        catch (SqlException ex)
+        catch (Exception ex) when (
+            ex is SqlException ||
+            ex is SocketException ||
+            ex is TimeoutException)
         {
-            logger.LogWarning(ex, "SQL not ready yet (attempt {Attempt}/{MaxAttempts}). Retrying in {Delay}s...",
+            logger.LogWarning(
+                null,
+                "Database not ready yet (attempt {Attempt}/{MaxAttempts}). Retrying in {DelaySeconds}s...",
                 attempt, maxAttempts, delay.TotalSeconds);
+
+            await Task.Delay(delay);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Migration failed with unexpected error.");
+            // REAL errors should fail fast
+            logger.LogError(ex, "Migration failed with non-transient error.");
             throw;
         }
-
-        await Task.Delay(delay);
     }
 
     throw new Exception("SQL Server did not become ready in time. Migrations not applied.");
 }
-
 public partial class Program { }
