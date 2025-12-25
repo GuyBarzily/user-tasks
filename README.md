@@ -3,6 +3,7 @@
 This project is a small full-stack system for managing user tasks with reminder handling.
 
 It includes:
+
 - **Client** – React application
 - **Server (API)** – .NET Web API
 - **Worker** – .NET Background Service
@@ -33,11 +34,13 @@ docker compose up -d
 | RabbitMQ   | 5672, 15672 | Messaging + management UI |
 
 Verify containers are running:
+
 ```
 docker ps
 ```
 
 RabbitMQ Management UI:
+
 ```
 http://localhost:15672
 username: guest
@@ -47,23 +50,31 @@ password: guest
 ## 3) Start the Server (API)
 
 Open a new terminal:
+
 ```
 cd server/UserTasks.Api
 dotnet restore
 dotnet ef database update
 dotnet run
 ```
+
 The API will be available at:
+
 ```
 http://localhost:5296
 ```
 
 ## 4) Start the Worker
+
 Open another terminal:
+
 ```
-cd server/UserTasks.Worker
+cd server/UserTasks.Api
+dotnet tool restore
 dotnet restore
+dotnet ef database update
 dotnet run
+
 ```
 
 Expected logs:
@@ -76,12 +87,15 @@ Periodic polling for overdue tasks
 
 Reminder logs when tasks are due
 Example:
+
 ```
 Hi your Task is due 1 (Interview reminder test)
 ```
 
 ## 5) Start the Client
+
 Open another terminal:
+
 ```
 cd client/user-tasks-client
 npm install
@@ -89,6 +103,7 @@ npm start
 ```
 
 ## 6) Running Tests
+
 Server (API) Tests
 
 The API includes automated tests using xUnit and ASP.NET Core TestServer.
@@ -96,6 +111,7 @@ The API includes automated tests using xUnit and ASP.NET Core TestServer.
 ```
 dotnet test server/UserTasks.Api.Tests/UserTasks.Api.Tests.csproj
 ```
+
 What is covered:
 
 - API endpoints (Tasks, Tags)
@@ -106,9 +122,6 @@ What is covered:
 
 - Happy paths + failure scenarios
 
-
-
-
 ## Notes
 
 - Database schema is created via EF Core migrations
@@ -118,7 +131,6 @@ What is covered:
 - RabbitMQ handles concurrent reminder processing safely
 
 - All services can be started independently
-
 
 ## Client (React)
 
